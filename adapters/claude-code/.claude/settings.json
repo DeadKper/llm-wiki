@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 .claude/scripts/export-session.py --trigger precompact"
+            "command": "cd \"${WIKI_ROOT:-$(pwd)}\" && python3 .claude/scripts/export-session.py --trigger precompact"
           }
         ]
       }
@@ -16,7 +16,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 .claude/scripts/export-session.py --trigger sessionend; python3 .claude/scripts/scheduled-maintenance.py --trigger sessionend 2>/dev/null; true"
+            "command": "cd \"${WIKI_ROOT:-$(pwd)}\" && python3 .claude/scripts/export-session.py --trigger sessionend; python3 .claude/scripts/scheduled-maintenance.py --trigger sessionend 2>/dev/null; true"
           }
         ]
       }
@@ -26,7 +26,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash .claude/scripts/index-sessions.sh && echo '---' && bash .claude/scripts/recall.sh --recent 3 && python3 .claude/scripts/load-personal-prefs.py 2>/dev/null || true && python3 .claude/scripts/scheduled-maintenance.py --trigger sessionstart 2>/dev/null || true"
+            "command": "WIKI_DIR=\"${WIKI_ROOT:-$(pwd)}\"; cd \"$WIKI_DIR\" && bash .claude/scripts/index-sessions.sh && echo '---' && bash .claude/scripts/recall.sh --recent 3 && python3 .claude/scripts/load-personal-prefs.py 2>/dev/null || true && python3 .claude/scripts/scheduled-maintenance.py --trigger sessionstart 2>/dev/null || true"
           }
         ]
       }
@@ -36,7 +36,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 -c \"import json,sys,pathlib; d=json.load(sys.stdin); pathlib.Path('.claude/no-export').touch() if 'this session is confidential' in d.get('prompt','').lower() else None\""
+            "command": "python3 -c \"import json,sys,pathlib,os; d=json.load(sys.stdin); root=pathlib.Path(os.environ.get('WIKI_ROOT','.')); (root/'.claude/no-export').touch() if 'this session is confidential' in d.get('prompt','').lower() else None\""
           }
         ]
       }

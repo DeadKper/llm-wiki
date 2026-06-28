@@ -18,6 +18,11 @@
 # Requirements:
 #   sqlite3
 
+# Resolve wiki root: WIKI_ROOT env var takes precedence over CWD
+if [ -n "${WIKI_ROOT:-}" ]; then
+  cd "$WIKI_ROOT"
+fi
+
 DB="sessions.db"
 EXPORT_DIR="sessions/exports"
 

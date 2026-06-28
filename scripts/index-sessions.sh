@@ -16,11 +16,16 @@
 
 set -euo pipefail
 
+# Resolve wiki root: WIKI_ROOT env var takes precedence over CWD
+if [ -n "${WIKI_ROOT:-}" ]; then
+  cd "$WIKI_ROOT"
+fi
+
 DB="sessions.db"
 EXPORT_DIR="sessions/exports"
 
 if [ ! -f "CLAUDE.md" ] && [ ! -f "AGENTS.md" ] && [ ! -f "WIKI.md" ] && [ ! -f ".cursorrules" ]; then
-  echo "⚠️  Run from your wiki root directory (where CLAUDE.md / AGENTS.md / WIKI.md lives)."
+  echo "⚠️  Run from your wiki root directory (where CLAUDE.md / AGENTS.md / WIKI.md lives), or set WIKI_ROOT."
   exit 1
 fi
 
