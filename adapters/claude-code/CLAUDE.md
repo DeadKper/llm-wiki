@@ -388,6 +388,12 @@ qmd query $'intent: Find pages about auth flow, not general security.\nlex: auth
   -c my-wiki -n 8
 ```
 
+**qmd score = 0% or all equal (no GPU)**: BM25 on common/short terms collapses scores. In this case, rank results yourself using frontmatter:
+1. `memory_tier`: procedural > semantic > episodic > working
+2. `confidence`: higher wins ties within same tier
+3. `last_confirmed`: more recent wins further ties
+Source pages (`sources/`) have no tier/confidence — treat as supporting evidence, not primary ranked results.
+
 **Without qmd skill**: grep over `wiki/` then read `wiki/index.md`.
 ```bash
 grep -rl "term" wiki/ | head -8
