@@ -41,10 +41,10 @@ At the start of every session, before answering:
 
 ## Operations
 
-- `> ingest [domain] raw/path/file.md` — extract entities, update pages, run `qmd embed` if installed
-- `> [question]` — wiki-search.sh or index.md, traverse relationships, synthesize, auto-file if good
+- `> ingest [domain] raw/path/file.md` — extract entities, update pages, run `qmd update` + `qmd embed` if qmd available; always keep `wiki/index.md` current
+- `> [question]` — qmd search/query with `-c` collection flags (from `.claude/wiki-search-config`), or grep + index.md fallback; traverse relationships, synthesize, auto-file if good
 - `> recall: [terms]` — search past session exports
-- `> wiki: [terms]` — search wiki pages (qmd or grep fallback)
+- `> wiki: [terms]` — search wiki pages: `qmd search`/`qmd query -c <collection>` if available, else grep + index.md
 - `> crystallize [title]` — distill work thread, feed back into existing pages
 - `> digest sessions` — compress session exports into episodic observations under `wiki/[domain]/observations/`
 - `> lint` — orphans, contradictions (authority-priority resolution), stale claims, decay, quality flags

@@ -76,7 +76,6 @@ llm-wiki/
 │       ├── recall.sh
 │       ├── scheduled-maintenance.py
 │       ├── sweep-sessions.py
-│       ├── wiki-search.sh
 │       └── wire-project.py
 ├── adapters/
 ├── .exportignore
@@ -351,7 +350,7 @@ Parseable: `grep "^## \[" wiki/log.md | tail -10`
 8. Check domain-specific implications (Domain Conventions below)
 9. Check cross-domain connections → `wiki/shared/`
 10. If this source meaningfully shifts the domain's picture, update `wiki/[domain]/overview.md`; if it shifts the cross-domain synthesis, update `wiki/overview.md`
-11. If qmd is installed, run `qmd embed` to update vector index for the new pages
+11. If qmd skill available, run `qmd update` to re-index the new pages (then `qmd embed` if vector index is in use); always keep `wiki/index.md` up to date regardless
 12. Append to `wiki/log.md` — one ingest line; one supersede line per supersession
 13. Report: files touched, entities extracted, corroborations, contradictions, supersessions
 
@@ -360,7 +359,7 @@ A single ingest typically touches 8–15 wiki pages.
 ### QUERY — `> [question]`
 1. `bash .claude/scripts/recall.sh "[keywords]"` — check past sessions
 2. Find relevant wiki pages:
-   - If qmd available: `bash .claude/scripts/wiki-search.sh "[keywords]"` (hybrid BM25 + vector)
+   - If qmd skill available: read `.claude/wiki-search-config` to get `WIKI_COLLECTIONS`; default to the wiki's own collection name plus `personal-wiki` if `.claude/personal-wiki-path` is set. Run `qmd search` (exact terms/names) or structured `qmd query` with `intent:`/`lex:`/`vec:` fields, passing each collection as a `-c <name>` flag.
    - Otherwise: read `wiki/index.md` and identify relevant pages from the catalog
 3. Read pages, traverse typed relationships; update `last_confirmed` to today on each page read (access counts as reinforcement — it resets the decay clock without raising confidence)
    - For any source page referenced with `stale_check: auto`: check if the source has changed by comparing `last_modified` or `content_hash` against the live source via MCP. If changed, re-fetch the content and run a full ingest for that source before synthesizing the answer — the answer should reflect current data.
@@ -377,12 +376,28 @@ bash .claude/scripts/recall.sh --date 2026-03
 BM25-ranked FTS5 search over all indexed sessions. Falls back to grep.
 
 ### WIKI SEARCH — `> wiki: [terms]`
+Searches wiki pages. Use when `wiki/index.md` grows large or for semantic queries.
+
+**With qmd skill** (preferred): read `.claude/wiki-search-config` to get `WIKI_COLLECTIONS`; default to the wiki's own collection plus `personal-wiki` if `.claude/personal-wiki-path` is set. Pass each collection as `-c <name>`:
 ```bash
-bash .claude/scripts/wiki-search.sh "terms"          # hybrid search or grep fallback
-bash .claude/scripts/wiki-search.sh "terms" --files  # filenames only
+# Exact terms/names/symbols → BM25
+qmd search "auth flow redesign" -c my-wiki -n 8
+
+# Conceptual / indirect → structured query (write intent/lex/vec yourself)
+qmd query $'intent: Find pages about auth flow, not general security.\nlex: auth flow login session token\nvec: user authentication redesign login session' \
+  -c my-wiki -n 8
 ```
-Searches wiki pages. Uses qmd (hybrid BM25 + vector) when installed; falls back to grep over `wiki/`.
-Use this for finding pages when `wiki/index.md` grows large or for semantic queries.
+
+**Without qmd skill**: grep over `wiki/` then read `wiki/index.md`.
+```bash
+grep -rl "term" wiki/ | head -8
+```
+
+Collections controlled by `.claude/wiki-search-config` (gitignored):
+```bash
+WIKI_COLLECTIONS=("my-wiki" "personal-wiki")
+```
+`wiki/index.md` must stay current regardless of whether qmd is used — update it on every ingest.
 
 ### DIGEST — `> digest sessions`
 Compress raw session exports into episodic observations and file them as wiki pages.

@@ -28,8 +28,9 @@ Session end    → hooks export transcript, index for search
 ## Wiki page search
 
 ```bash
-bash .claude/scripts/wiki-search.sh "terms"          # hybrid (qmd) or grep fallback
-bash .claude/scripts/wiki-search.sh "terms" --files  # filenames only
+qmd search "terms" -c my-wiki -n 8                   # BM25 (exact terms; no GPU needed)
+qmd query $'intent: ...\nlex: ...\nvec: ...' -c my-wiki -n 8  # hybrid (slow without GPU)
+grep -rl "terms" wiki/ | head -8                     # fallback without qmd
 ```
 
 ## Session export

@@ -31,7 +31,7 @@ The schema file must document:
 - Source pages have no confidence/memory_tier/last_confirmed
 - Index format: source pages use `-` in tier/confidence columns
 - `observations/` subdirectory for digest-origin episodic pages
-- qmd/wiki-search: use qmd if available, fall back to index.md/grep
+- wiki search: use `qmd search`/`qmd query -c <collection>` if qmd available (collections from `.claude/wiki-search-config`), fall back to grep + index.md; `wiki/index.md` always kept current
 
 ## File naming
 

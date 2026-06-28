@@ -70,13 +70,13 @@ Skip steps 2–4 if the wiki is empty or this is a bootstrap session.
 6. Update `wiki/index.md`
 7. Check cross-domain connections → `wiki/shared/`
 8. If this source meaningfully shifts the domain's picture, update `wiki/[domain]/overview.md`; if it shifts cross-domain synthesis, update `wiki/overview.md`
-9. If qmd is installed, run `qmd embed` to update vector index for the new pages
+9. If qmd is available, run `qmd update` to re-index the new pages (then `qmd embed` if vector index is in use); always keep `wiki/index.md` up to date regardless
 10. Append to `wiki/log.md`; report: files touched, entities extracted, corroborations, supersessions
 
 ### `> [question]` — query
 1. Check sessions: `bash scripts/recall.sh "[keywords]"`
 2. Find relevant wiki pages:
-   - If qmd available: `bash scripts/wiki-search.sh "[keywords]"` (hybrid BM25 + vector)
+   - If qmd available: use `qmd search` (exact terms) or structured `qmd query` with `intent:`/`lex:`/`vec:` fields; pass collection name(s) via `-c <name>`. Collection names come from `.claude/wiki-search-config` (`WIKI_COLLECTIONS`); default to the wiki's own collection.
    - Otherwise: read `wiki/index.md` and identify relevant pages from the catalog
 3. Drill into pages, traverse typed relationships
 4. Update `last_confirmed` to today on each page read (access resets decay clock; does not raise confidence)

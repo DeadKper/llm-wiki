@@ -59,14 +59,12 @@ bash .claude/scripts/index-sessions.sh
 
 ## Scaling beyond index.md
 
-FTS5 covers session exports. Wiki pages are searched via `wiki/index.md` — this works
-up to ~100 pages. Beyond that, install [qmd](https://github.com/tobi/qmd):
+FTS5 covers session exports. Wiki pages are searched via `wiki/index.md` — this works up to ~100 pages. Beyond that, install [qmd](https://github.com/tobi/qmd):
 
 ```bash
-npm install -g qmd
-qmd collection add wiki wiki/
+npm install -g @tobilu/qmd
+qmd collection add wiki/ --name my-wiki
 qmd embed                  # run once, then after batches of ingests
 ```
 
-qmd provides hybrid BM25 + vector search over wiki pages with LLM reranking.
-`wiki-search.sh` auto-detects it — no schema changes needed.
+qmd provides hybrid BM25 + vector search with LLM reranking. The agent uses it directly with `-c <collection>` flags from `.claude/wiki-search-config`. Note: `qmd query` (vector + reranking) is slow without GPU — use `qmd search` (BM25 only) for fast lookups. `wiki/index.md` is always kept current as a fallback.

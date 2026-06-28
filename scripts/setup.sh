@@ -74,7 +74,6 @@ case "$ADAPTER" in
       cp scripts/wire-project.py .claude/scripts/
       cp scripts/load-personal-prefs.py .claude/scripts/
       cp scripts/scheduled-maintenance.py .claude/scripts/
-      cp scripts/wiki-search.sh .claude/scripts/
       chmod +x .claude/scripts/*.sh .claude/scripts/*.py
       cat > .claude/maintenance-state.json << 'JSON'
 {

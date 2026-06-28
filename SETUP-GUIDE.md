@@ -20,8 +20,8 @@ sudo apt install sqlite3 gnupg
 
 # Windows — see docs/windows-setup.md
 
-# qmd (optional, any platform)
-npm install -g qmd
+# qmd (optional, any platform) — hybrid BM25 + vector search; note: qmd query is slow without GPU, use qmd search for fast BM25
+npm install -g @tobilu/qmd
 ```
 
 ---

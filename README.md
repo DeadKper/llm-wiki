@@ -101,23 +101,30 @@ bash scripts/recall.sh --date 2026-06
 
 ## Wiki page search
 
-Wiki pages are searched via `wiki/index.md` by default. For larger wikis (100+ pages),
-install [qmd](https://github.com/tobi/qmd) for hybrid BM25 + vector search:
+Wiki pages are searched via `wiki/index.md` by default (always kept current). For larger wikis (100+ pages), install [qmd](https://github.com/tobi/qmd) for hybrid BM25 + vector search:
 
 ```bash
-npm install -g qmd
-qmd collection add wiki wiki/
+npm install -g @tobilu/qmd
+qmd collection add wiki/ --name my-wiki
 qmd embed                          # generate vector embeddings (run once, then after ingests)
 ```
 
-Once installed, `wiki-search.sh` uses qmd automatically:
+Once installed, the agent uses qmd directly with collection flags from `.claude/wiki-search-config`:
 
 ```bash
-bash .claude/scripts/wiki-search.sh "auth flow redesign"
+# Exact terms → BM25
+qmd search "auth flow redesign" -c my-wiki -n 8
+
+# Conceptual → structured query
+qmd query $'intent: Find auth flow pages.\nlex: auth login session token\nvec: user authentication redesign' -c my-wiki -n 8
 ```
 
-Without qmd, the same script falls back to grep. Setup detects qmd and adds the
-collection automatically if present.
+Configure collections in `.claude/wiki-search-config` (gitignored):
+```bash
+WIKI_COLLECTIONS=("my-wiki" "personal-wiki")
+```
+
+Without qmd, the agent falls back to grep + `wiki/index.md`. `wiki/index.md` is always kept current regardless of qmd availability.
 
 ## Confidential sessions
 

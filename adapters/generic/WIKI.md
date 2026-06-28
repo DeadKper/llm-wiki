@@ -82,7 +82,7 @@ Use these in `## Relationships` blocks on entity and concept pages:
 | Command | Steps |
 |---------|-------|
 | `> ingest [domain] raw/path/file.md` | Read → strip PII → extract entities → create source page (no tier/confidence) → update entity/concept pages (add to `## Sources`, raise confidence) → update index → check cross-domain → log |
-| `> [question]` | Check sessions → find pages (qmd if available, else read index) → traverse relationships → update `last_confirmed` on read pages → for `stale_check: auto` sources: compare `last_modified`/`content_hash` via MCP, re-ingest if changed → synthesize answer → auto-file if well-structured → log |
+| `> [question]` | Check sessions → find pages (qmd `search`/`query -c <collection>` from `.claude/wiki-search-config` if available, else read index + grep) → traverse relationships → update `last_confirmed` on read pages → for `stale_check: auto` sources: compare `last_modified`/`content_hash` via MCP, re-ingest if changed → synthesize answer → auto-file if well-structured → log |
 | `> crystallize [title]` | Distill completed work into structured page, extract lessons as facts |
 | `> lint` | Find orphans, contradictions, stale claims, decay confidence, suggest missing pages |
 | `> consolidate` | Promote pages up tier ladder based on evidence |
