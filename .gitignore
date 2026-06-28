@@ -16,6 +16,7 @@ sessions.db-wal
 
 # Personal wiki integration — local only, never commit
 .claude/personal-wiki-path
+.claude/wiki-search-config
 
 # Scheduled maintenance state — local only, per person
 .claude/maintenance-state.json

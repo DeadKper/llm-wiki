@@ -40,12 +40,23 @@ if [ -f "$PERSONAL_WIKI_PATH_FILE" ]; then
   PERSONAL_WIKI_ROOT="$(cat "$PERSONAL_WIKI_PATH_FILE" | tr -d '[:space:]')"
 fi
 
+# Load collection names from config; fall back to defaults if missing
+WIKI_COLLECTIONS=()
+CONFIG_FILE="$WIKI_ROOT/.claude/wiki-search-config"
+if [ -f "$CONFIG_FILE" ]; then
+  source "$CONFIG_FILE"
+fi
+if [ "${#WIKI_COLLECTIONS[@]}" -eq 0 ]; then
+  WIKI_COLLECTIONS=("wiki")
+  [ -n "$PERSONAL_WIKI_ROOT" ] && WIKI_COLLECTIONS+=("personal-wiki")
+fi
+
 # ── qmd path ──────────────────────────────────────────────────────────────────
 if command -v qmd &>/dev/null; then
-  COLLECTION_FLAGS="-c wiki"
-  if [ -n "$PERSONAL_WIKI_ROOT" ] && [ -d "$PERSONAL_WIKI_ROOT" ]; then
-    COLLECTION_FLAGS="$COLLECTION_FLAGS -c personal-wiki"
-  fi
+  COLLECTION_FLAGS=""
+  for c in "${WIKI_COLLECTIONS[@]}"; do
+    COLLECTION_FLAGS="$COLLECTION_FLAGS -c $c"
+  done
   if [ "$FILES_ONLY" = "1" ]; then
     qmd query "$QUERY" $COLLECTION_FLAGS --files 2>/dev/null
   else
