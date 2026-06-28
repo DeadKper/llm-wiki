@@ -104,20 +104,18 @@ for f in "$EXPORT_DIR"/*.md; do
   EXPORT_DATE=$(echo "$BASENAME" | grep -oE '[0-9]{4}-[0-9]{2}-[0-9]{2}' || echo "unknown")
   TRIGGER=$(echo "$BASENAME" | grep -oE '(precompact|sessionend|manual)' | head -1 || echo "unknown")
 
-  # JSON-escape the content for safe insertion
-  CONTENT=$(cat "$f")
-  ESCAPED=$(python3 -c 'import sys,json; print(json.dumps(sys.stdin.read()))' <<< "$CONTENT" 2>/dev/null)
-
-  if [ -z "$ESCAPED" ]; then
-    echo "⚠️  Failed to process: $BASENAME" >&2
-    ERRORS=$((ERRORS + 1))
-    continue
-  fi
-
-  sqlite3 "$DB" "
-    INSERT OR IGNORE INTO sessions_raw (filename, session_id, export_date, trigger, content)
-    VALUES ('$BASENAME', '$SESSION_ID', '$EXPORT_DATE', '$TRIGGER', $ESCAPED);
-  " 2>/dev/null && INDEXED=$((INDEXED + 1)) || ERRORS=$((ERRORS + 1))
+  python3 - "$DB" "$f" "$BASENAME" "$SESSION_ID" "$EXPORT_DATE" "$TRIGGER" <<'PYEOF' 2>/dev/null \
+    && INDEXED=$((INDEXED + 1)) || ERRORS=$((ERRORS + 1))
+import sys, sqlite3 as sq
+db, fpath, fname, sid, edate, trig = sys.argv[1:]
+content = open(fpath, encoding='utf-8', errors='replace').read()
+con = sq.connect(db)
+con.execute(
+    "INSERT OR IGNORE INTO sessions_raw (filename, session_id, export_date, trigger, content) VALUES (?,?,?,?,?)",
+    (fname, sid or 'unknown', edate, trig, content)
+)
+con.commit(); con.close()
+PYEOF
 
 done
 
