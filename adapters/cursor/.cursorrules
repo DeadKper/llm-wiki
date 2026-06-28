@@ -35,7 +35,8 @@ At the start of every session, before answering:
 4. **Score every claim.** Knowledge pages (concepts, entities, threads) carry `confidence` (0.0–1.0), `memory_tier`, `last_confirmed`, and a `## Sources` list. Source pages have none of these.
 5. **Supersede, don't overwrite.** Resolve contradictions by priority: `source_authority` (primary > secondary > informal) → sources list length → `last_confirmed` → `confidence`.
 6. **Access resets decay clock.** Update `last_confirmed` on every page read during a query. Only corroborating sources and crystallize raise confidence (+0.05).
-7. **File good answers.** Auto-file well-structured query answers as wiki pages. Log all queries.
+7. **Check staleness at query time.** For any source page referenced with `stale_check: auto`, compare `last_modified` or `content_hash` against the live source via its MCP gateway. If changed, re-fetch and re-ingest that source before synthesizing — the answer must reflect current data.
+8. **File good answers.** Auto-file well-structured query answers as wiki pages. Log all queries.
 8. **Overview pages.** Update `wiki/[domain]/overview.md` when the domain picture shifts. Update `wiki/overview.md` when cross-domain synthesis shifts.
 
 ## Operations
@@ -72,6 +73,12 @@ source_type: article | paper | book_chapter | podcast | video | memo | report | 
 source_authority: primary | secondary | informal
 tags: []
 raw_path: raw/DOMAIN/filename.md
+source_url: null              # canonical URL or resource ID used to fetch this source
+source_mcp: null              # MCP gateway name used at ingest time, or null for static sources
+last_fetched: YYYY-MM-DD      # date content was last pulled from the live source
+last_modified: null           # last-modified timestamp from the source system, if the gateway provides one
+content_hash: null            # sha256 of raw content — used when last_modified is unavailable
+stale_check: auto             # auto | manual | skip — auto=re-fetch at query time when this source is consulted; manual=human-triggered; skip=static/immutable docs
 ```
 
 Knowledge pages also include `## Sources` listing backing source pages.

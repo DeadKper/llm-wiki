@@ -70,6 +70,7 @@ llm-wiki/
 | `> crystallize [title]` | Distill a completed work thread into wiki pages |
 | `> lint` | Health-check: orphans, contradictions, stale claims |
 | `> consolidate` | Promote pages up memory tier ladder |
+| `> stale-check [domain]` | Re-fetch `manual` sources + any `auto` sources not checked recently |
 | `> update [domain] [path]` | Update a page from chat (no raw file needed) |
 | `> customize` | Interactive setup for domain names and conventions |
 | `> bootstrap` | Create directory structure and seed pages |

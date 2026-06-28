@@ -39,7 +39,8 @@ Active domains:
 5. **Supersede, don't overwrite.** When new info contradicts old, set `superseded_by` on the
    old page and mark it stale. Resolve by priority: `source_authority` (primary > secondary > informal), then sources list length, then `last_confirmed`, then `confidence`.
 
-6. **File good answers.** After a query, if the answer is well-structured and cites sources → file it as a wiki page automatically. Update `last_confirmed` on every page read during the query (access resets the decay clock). Always log the query regardless.
+6. **Check staleness at query time.** For any source page referenced with `stale_check: auto`, compare `last_modified` or `content_hash` against the live source via its MCP gateway. If changed, re-fetch and re-ingest that source before synthesizing — the answer must reflect current data.
+7. **File good answers.** After a query, if the answer is well-structured and cites sources → file it as a wiki page automatically. Update `last_confirmed` on every page read during the query (access resets the decay clock). Always log the query regardless.
 
 7. **Load context at session start.** Read `wiki/log.md` tail to identify recently active domains. Read `wiki/overview.md` and per-domain overviews for those domains. Note open research threads.
 
@@ -81,7 +82,7 @@ Use these in `## Relationships` blocks on entity and concept pages:
 | Command | Steps |
 |---------|-------|
 | `> ingest [domain] raw/path/file.md` | Read → strip PII → extract entities → create source page (no tier/confidence) → update entity/concept pages (add to `## Sources`, raise confidence) → update index → check cross-domain → log |
-| `> [question]` | Check sessions → find pages (qmd if available, else read index) → traverse relationships → update `last_confirmed` on read pages → synthesize answer → auto-file if well-structured → log |
+| `> [question]` | Check sessions → find pages (qmd if available, else read index) → traverse relationships → update `last_confirmed` on read pages → for `stale_check: auto` sources: compare `last_modified`/`content_hash` via MCP, re-ingest if changed → synthesize answer → auto-file if well-structured → log |
 | `> crystallize [title]` | Distill completed work into structured page, extract lessons as facts |
 | `> lint` | Find orphans, contradictions, stale claims, decay confidence, suggest missing pages |
 | `> consolidate` | Promote pages up tier ladder based on evidence |
@@ -109,6 +110,13 @@ These pages also include a `## Sources` section listing all sources that back th
 **Source pages** (`sources/SLUG.md`) are immutable summaries — no `confidence`, `memory_tier`, or `last_confirmed`. They require:
 ```yaml
 source_authority: primary | secondary | informal
+raw_path: raw/DOMAIN/filename.md
+source_url: null              # canonical URL or resource ID used to fetch this source
+source_mcp: null              # MCP gateway name used at ingest time, or null for static sources
+last_fetched: YYYY-MM-DD      # date content was last pulled from the live source
+last_modified: null           # last-modified timestamp from the source system, if the gateway provides one
+content_hash: null            # sha256 of raw content — used when last_modified is unavailable
+stale_check: auto             # auto | manual | skip — auto=re-fetch at query time when this source is consulted; manual=human-triggered; skip=static/immutable docs
 ```
 `primary` = official docs, original research, direct measurement.
 `secondary` = analysis or summary of primary sources.

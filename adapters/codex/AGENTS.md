@@ -80,6 +80,7 @@ Skip steps 2–4 if the wiki is empty or this is a bootstrap session.
    - Otherwise: read `wiki/index.md` and identify relevant pages from the catalog
 3. Drill into pages, traverse typed relationships
 4. Update `last_confirmed` to today on each page read (access resets decay clock; does not raise confidence)
+   - For any source page with `stale_check: auto`: compare `last_modified` or `content_hash` against the live source via its MCP gateway. If changed, re-fetch and re-ingest that source before synthesizing — the answer must reflect current data.
 5. Synthesize with citations: `[[wiki/domain/path]]`
 6. If answer is well-structured and cites sources → file automatically as wiki page. If borderline → ask. If purely conversational → skip.
 7. Log: `## [YYYY-MM-DD] query | [domain or "shared"] | [question summary]` — always. Use `shared` when query spans multiple domains.
@@ -186,6 +187,12 @@ source_type: article | paper | book_chapter | podcast | video | memo | report | 
 source_authority: primary | secondary | informal
 tags: []
 raw_path: raw/DOMAIN/filename.md
+source_url: null              # canonical URL or resource ID used to fetch this source
+source_mcp: null              # MCP gateway name used at ingest time, or null for static sources
+last_fetched: YYYY-MM-DD      # date content was last pulled from the live source
+last_modified: null           # last-modified timestamp from the source system, if the gateway provides one
+content_hash: null            # sha256 of raw content — used when last_modified is unavailable
+stale_check: auto             # auto | manual | skip — auto=re-fetch at query time when this source is consulted; manual=human-triggered; skip=static/immutable docs
 ---
 ## Summary
 ## Key Claims

@@ -184,6 +184,12 @@ source_type: article | paper | book_chapter | podcast | video | memo | report | 
 source_authority: primary | secondary | informal
 tags: []
 raw_path: raw/DOMAIN/filename.md
+source_url: null              # canonical URL or MCP resource ID used to fetch this source
+source_mcp: null              # MCP gateway name used at ingest time, or null for static sources
+last_fetched: YYYY-MM-DD      # date content was last pulled from the live source
+last_modified: null           # last-modified timestamp from the source system, if the gateway provides one
+content_hash: null            # sha256 of raw content — used when last_modified is unavailable
+stale_check: auto             # auto | manual | skip — auto=re-fetch at query time when this source is consulted; manual=human-triggered; skip=static/immutable docs
 ---
 
 ## Summary
@@ -317,8 +323,9 @@ of typed relationships, updated at ingest and crystallize.
 ## [YYYY-MM-DD] digest     | sessions | N sessions → M wiki pages
 ## [YYYY-MM-DD] crystallize| DOMAIN_1 | Title → M facts
 ## [YYYY-MM-DD] supersede  | DOMAIN_2 | old → new
-## [YYYY-MM-DD] consolidate| all      | N working→episodic, M episodic→semantic
-## [YYYY-MM-DD] update     | DOMAIN_3 | description
+## [YYYY-MM-DD] consolidate | all      | N working→episodic, M episodic→semantic
+## [YYYY-MM-DD] stale-check | DOMAIN_1 | N checked, M stale
+## [YYYY-MM-DD] update      | DOMAIN_3 | description
 ```
 Parseable: `grep "^## \[" wiki/log.md | tail -10`
 
@@ -332,6 +339,11 @@ Parseable: `grep "^## \[" wiki/log.md | tail -10`
 3. Brief 2–3 sentence takeaway
 4. Extract entities with typed relationships (`uses` / `depends_on` / `contradicts` / `caused` / `fixed` / `supersedes` / `owns` / `impacts`)
 5. Create `wiki/[domain]/sources/SLUG.md` — no `confidence` or `memory_tier` on source pages; those belong on the concept/entity pages that aggregate claims from this source
+   - Set `source_url` to the URL or resource ID used to fetch the content, if known
+   - Set `source_mcp` to the gateway name if fetched via MCP, otherwise `null`
+   - Set `last_fetched` to today; `last_modified` to the source's modification timestamp if the gateway provides one, otherwise `null`
+   - Set `content_hash` to sha256 of raw content when `last_modified` is unavailable and `stale_check: auto`
+   - Set `stale_check: auto` for live MCP sources; `skip` for static files, pasted text, or local documents
 6. For each existing entity/concept page this source touches:
    - If source **corroborates** an existing claim: add to `## Sources` list, raise `confidence` by 0.05 (cap 1.0), update `last_confirmed`
    - If source **contradicts** an existing claim: determine the weaker claim by priority — (1) `source_authority`, (2) sources list length, (3) `last_confirmed`, (4) `confidence`; set `superseded_by` on the weaker claim, mark it stale; log a supersede entry
@@ -351,6 +363,7 @@ A single ingest typically touches 8–15 wiki pages.
    - If qmd available: `bash .claude/scripts/wiki-search.sh "[keywords]"` (hybrid BM25 + vector)
    - Otherwise: read `wiki/index.md` and identify relevant pages from the catalog
 3. Read pages, traverse typed relationships; update `last_confirmed` to today on each page read (access counts as reinforcement — it resets the decay clock without raising confidence)
+   - For any source page referenced with `stale_check: auto`: check if the source has changed by comparing `last_modified` or `content_hash` against the live source via MCP. If changed, re-fetch the content and run a full ingest for that source before synthesizing the answer — the answer should reflect current data.
 4. Synthesize with inline citations: `[[wiki/domain/path]]`
 5. Assess the answer: if it is well-structured, cites sources, and is consistent with the wiki → file it automatically as a new wiki page. If borderline, ask. If low-quality or purely conversational, skip.
 6. Log: `## [YYYY-MM-DD] query | [domain or "shared"] | [question summary]` — always, whether filed or not. Use `shared` when the query spans multiple domains.
@@ -414,6 +427,21 @@ Promote pages up the tier ladder:
 - `working` → `episodic`: after first digest/crystallize
 - `episodic` → `semantic`: confidence ≥ 0.7, 2+ sources in `## Sources`
 - `semantic` → `procedural`: confidence ≥ 0.9, 3+ sources in `## Sources`
+
+### STALE-CHECK — `> stale-check [domain]`
+Re-fetch all `manual` sources in the domain (or all domains if omitted). Also covers `auto` sources not yet checked at query time.
+
+1. Collect candidates:
+   - `grep -rl "stale_check: manual" wiki/[domain]/sources/` — always re-fetched
+   - `grep -rl "stale_check: auto" wiki/[domain]/sources/` — re-fetched if `last_fetched` is stale (>7 days)
+2. For each source:
+   - If `last_modified` is set: fetch current last-modified from the MCP gateway using `source_url` / `source_mcp`; compare to stored value
+   - If `last_modified` is null: fetch current raw content via MCP; compute sha256; compare to `content_hash`
+   - If **unchanged**: update `last_fetched` to today, no re-ingest needed
+   - If **changed**: re-fetch the content and run a full ingest for that source immediately — wiki pages updated to reflect current data
+3. Log: `## [YYYY-MM-DD] stale-check | [domain] | N checked, M stale`
+
+Sources that cannot be reached (MCP unavailable, URL invalid) are skipped silently and logged as `unreachable`.
 
 ### UPDATE — `> update [domain] [path]`
 Update a wiki page from chat. For corrections, meeting notes, conversation decisions.
