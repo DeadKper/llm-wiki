@@ -25,9 +25,11 @@ Personal wiki structure expected (but not required):
 
 import sys
 import glob
+import os
 import pathlib
 
-CONFIG_FILE = pathlib.Path(".claude/personal-wiki-path")
+_wiki_root = pathlib.Path(os.environ.get("WIKI_ROOT", "."))
+CONFIG_FILE = _wiki_root / ".claude" / "personal-wiki-path"
 MAX_PREFS = 5
 
 
