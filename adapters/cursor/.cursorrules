@@ -49,6 +49,7 @@ At the start of every session, before answering:
 - `> digest sessions` — compress session exports into episodic observations under `wiki/[domain]/observations/`
 - `> lint` — orphans, contradictions (authority-priority resolution), stale claims, decay, quality flags
 - `> consolidate` — promote tiers; working→episodic after first digest, episodic→semantic at ≥0.7+2 sources, semantic→procedural at ≥0.9+3 sources
+- `> stale-check [domain]` — re-fetch all `manual` MCP sources + `auto` sources older than 7 days; compare `last_modified` or sha256 of content against stored value; re-ingest if changed; update `last_fetched` on all checked; log result; skip `stale_check: skip` and unreachable sources silently
 - `> update [domain] [path]` — update page from chat
 
 ## Page frontmatter

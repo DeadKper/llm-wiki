@@ -431,17 +431,27 @@ Promote pages up the tier ladder:
 ### STALE-CHECK — `> stale-check [domain]`
 Re-fetch all `manual` sources in the domain (or all domains if omitted). Also covers `auto` sources not yet checked at query time.
 
+Trigger patterns: `> stale-check` (all domains), `> stale-check [domain]`.
+
 1. Collect candidates:
    - `grep -rl "stale_check: manual" wiki/[domain]/sources/` — always re-fetched
    - `grep -rl "stale_check: auto" wiki/[domain]/sources/` — re-fetched if `last_fetched` is stale (>7 days)
-2. For each source:
-   - If `last_modified` is set: fetch current last-modified from the MCP gateway using `source_url` / `source_mcp`; compare to stored value
-   - If `last_modified` is null: fetch current raw content via MCP; compute sha256; compare to `content_hash`
+   - Sources with `stale_check: skip` are never touched.
+2. For each source, read frontmatter: `source_url`, `source_mcp`, `last_modified`, `content_hash`.
+3. Fetch via MCP (`source_mcp` field): google → `mcp__google__get_doc_as_markdown`, jira → `mcp__jira__ai_tools_jira-get_issue`, etc.
+4. Compare:
+   - If `last_modified` is set: compare to stored value
+   - If `last_modified` is null: compute sha256 of fetched content; compare to `content_hash`
    - If **unchanged**: update `last_fetched` to today, no re-ingest needed
    - If **changed**: re-fetch the content and run a full ingest for that source immediately — wiki pages updated to reflect current data
-3. Log: `## [YYYY-MM-DD] stale-check | [domain] | N checked, M stale`
+5. Update `last_fetched` on every checked source (changed or not).
+6. Log: `## [YYYY-MM-DD] stale-check | [domain] | N checked, M stale`
+7. Report: sources checked, stale count, which ones re-ingested, which unreachable.
+8. Update `.claude/maintenance-state.json` if a `last_stale_check` key exists there.
 
 Sources that cannot be reached (MCP unavailable, URL invalid) are skipped silently and logged as `unreachable`.
+
+QUERY auto-triggers stale-check for individual sources consulted mid-query — this operation covers bulk/scheduled runs.
 
 ### UPDATE — `> update [domain] [path]`
 Update a wiki page from chat. For corrections, meeting notes, conversation decisions.

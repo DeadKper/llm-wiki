@@ -126,6 +126,22 @@ Find and fix:
 ### `> consolidate`
 Promote: `working` → `episodic` (first digest); `episodic` → `semantic` (≥0.7, 2+ sources in `## Sources`); `semantic` → `procedural` (≥0.9, 3+ sources in `## Sources`).
 
+### `> stale-check [domain]`
+Re-fetch MCP-sourced wiki pages to detect and ingest changed content. Domain optional — omit to check all domains.
+
+1. Collect candidates: `stale_check: manual` sources always; `stale_check: auto` sources if `last_fetched` >7 days. Skip `stale_check: skip`.
+2. For each source, read frontmatter: `source_url`, `source_mcp`, `last_modified`, `content_hash`.
+3. Fetch via MCP (`source_mcp` field) and compare:
+   - `last_modified` set → compare to stored value
+   - `last_modified` null → compute sha256 of content; compare to `content_hash`
+   - **Unchanged** → update `last_fetched` to today only
+   - **Changed** → run full INGEST for that source
+4. Update `last_fetched` on every checked source.
+5. Log: `## [YYYY-MM-DD] stale-check | [domain] | N checked, M stale`
+6. Report: sources checked, stale count, which re-ingested, which unreachable.
+
+Sources unreachable (MCP unavailable, bad URL) → skip silently, log as `unreachable`.
+
 ### `> update [domain] [path]`
 Update a wiki page from chat. For corrections, meeting notes, decisions.
 

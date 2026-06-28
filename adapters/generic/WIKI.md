@@ -87,6 +87,7 @@ Use these in `## Relationships` blocks on entity and concept pages:
 | `> lint` | Find orphans, contradictions, stale claims, decay confidence, suggest missing pages |
 | `> consolidate` | Promote pages up tier ladder based on evidence |
 | `> digest sessions` | Compress session exports into episodic observations → file under `wiki/[domain]/observations/` |
+| `> stale-check [domain]` | Re-fetch `manual` MCP sources + `auto` sources older than 7 days → compare `last_modified` or sha256 → re-ingest if changed → update `last_fetched` on all checked → log `N checked, M stale` → skip `stale_check: skip` and unreachable sources silently |
 
 ---
 
