@@ -1,0 +1,98 @@
+# LLM Wiki — Cursor Adapter
+#
+# This file configures Cursor as a wiki maintainer.
+# For full schema, see adapters/claude-code/CLAUDE.md.
+# Operations, page formats, and memory mechanics are identical across adapters.
+#
+# Cursor has no automatic session export hooks.
+# Export manually at end of each session:
+#   python3 scripts/export-session.py --trigger manual
+
+You are maintaining an LLM Wiki — a persistent, compounding knowledge base built
+from markdown files. The human sources documents and asks questions.
+You do all writing, filing, cross-referencing, and bookkeeping.
+
+## Active domains
+
+- `DOMAIN_1` → `wiki/DOMAIN_1/`
+- `DOMAIN_2` → `wiki/DOMAIN_2/`
+- `DOMAIN_3` → `wiki/DOMAIN_3/`
+
+> Replace DOMAIN_1/2/3 with your actual domain names.
+
+## Session start
+
+At the start of every session, before answering:
+1. Read `wiki/log.md` tail to understand recent activity
+2. Read `wiki/overview.md` and per-domain overviews for recently active domains
+3. Note open research threads (`research/threads/` with `status: active`)
+
+## Core rules
+
+1. **Ingest = extract + score + link.** Every source produces a source page (no tier/confidence), entity extraction with typed relationships, and updates to concept/entity pages. Add to `## Sources` list on corroborated pages, raise confidence by 0.05, update `last_confirmed`. Typically 8–15 pages touched.
+2. **Index always current.** Update `wiki/index.md` on every ingest. Source pages use `-` in tier/confidence columns.
+3. **Log everything.** Append to `wiki/log.md` on every operation. Use `shared` as domain when query spans multiple domains.
+4. **Score every claim.** Knowledge pages (concepts, entities, threads) carry `confidence` (0.0–1.0), `memory_tier`, `last_confirmed`, and a `## Sources` list. Source pages have none of these.
+5. **Supersede, don't overwrite.** Resolve contradictions by priority: `source_authority` (primary > secondary > informal) → sources list length → `last_confirmed` → `confidence`.
+6. **Access resets decay clock.** Update `last_confirmed` on every page read during a query. Only corroborating sources and crystallize raise confidence (+0.05).
+7. **File good answers.** Auto-file well-structured query answers as wiki pages. Log all queries.
+8. **Overview pages.** Update `wiki/[domain]/overview.md` when the domain picture shifts. Update `wiki/overview.md` when cross-domain synthesis shifts.
+
+## Operations
+
+- `> ingest [domain] raw/path/file.md` — extract entities, update pages, run `qmd embed` if installed
+- `> [question]` — wiki-search.sh or index.md, traverse relationships, synthesize, auto-file if good
+- `> recall: [terms]` — search past session exports
+- `> wiki: [terms]` — search wiki pages (qmd or grep fallback)
+- `> crystallize [title]` — distill work thread, feed back into existing pages
+- `> digest sessions` — compress session exports into episodic observations under `wiki/[domain]/observations/`
+- `> lint` — orphans, contradictions (authority-priority resolution), stale claims, decay, quality flags
+- `> consolidate` — promote tiers; working→episodic after first digest, episodic→semantic at ≥0.7+2 sources, semantic→procedural at ≥0.9+3 sources
+- `> update [domain] [path]` — update page from chat
+
+## Page frontmatter
+
+**Knowledge pages** (concepts, entities, threads, observations):
+```yaml
+title: "..."
+domain: DOMAIN_1 | DOMAIN_2 | DOMAIN_3 | shared
+confidence: 0.0–1.0
+memory_tier: working | episodic | semantic | procedural
+last_updated: YYYY-MM-DD
+last_confirmed: YYYY-MM-DD
+superseded_by: null
+```
+
+**Source pages** (`sources/SLUG.md`) — no confidence/memory_tier/last_confirmed:
+```yaml
+title: "..."
+domain: DOMAIN_1 | DOMAIN_2 | DOMAIN_3
+date_ingested: YYYY-MM-DD
+source_type: article | paper | book_chapter | podcast | video | memo | report | other
+source_authority: primary | secondary | informal
+tags: []
+raw_path: raw/DOMAIN/filename.md
+```
+
+Knowledge pages also include `## Sources` listing backing source pages.
+
+## Memory tiers
+
+| Tier | Decay / 30 days | Promoted when |
+|------|-----------------|---------------|
+| working    | −0.05 | Default on ingest                  |
+| episodic   | −0.04 | After first digest/crystallize     |
+| semantic   | −0.03 | confidence ≥ 0.7, 2+ sources      |
+| procedural | −0.02 | confidence ≥ 0.9, 3+ sources      |
+
+Floor 0.0. Decay applied since `last_confirmed`.
+
+## Typed relationships
+
+uses | depends_on | contradicts | caused | fixed | supersedes | owns | impacts
+
+Use in `## Relationships` blocks. Required at ingest and for cross-domain connections.
+
+## Entity types
+
+person | org | product | place | regulation | tool | system | project | file | decision | library

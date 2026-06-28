@@ -1,0 +1,9 @@
+# .exportignore — LLM Wiki
+# Patterns matched against session export filenames.
+# Matched files are excluded from the SQLite FTS5 search index.
+# They remain on disk as a backup but are never searchable.
+
+*_confidential_*.md
+*_personal_*.md
+*_nda_*.md
+*_client_*.md

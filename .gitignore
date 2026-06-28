@@ -1,0 +1,37 @@
+# LLM Wiki — gitignore
+
+# Session exports — local only, never commit raw transcripts
+sessions/exports/
+sessions/confidential/
+sessions/wiki-digests/
+
+# SQLite index — regenerable from exports
+sessions.db
+sessions.db-shm
+sessions.db-wal
+
+# Confidentiality sentinel
+.claude/no-export
+.claude/hooks.log
+
+# Personal wiki integration — local only, never commit
+.claude/personal-wiki-path
+
+# Scheduled maintenance state — local only, per person
+.claude/maintenance-state.json
+.claude/maintenance-schedule.json
+.claude/maintenance-due
+
+# Python bytecode
+__pycache__/
+*.py[cod]
+
+# OS noise
+.DS_Store
+.DS_Store?
+._*
+Thumbs.db
+*.swp
+*.swo
+.idea/
+.vscode/
