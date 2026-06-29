@@ -118,7 +118,7 @@ Distill a completed work thread:
 Find and fix:
 - Orphan pages → link or flag
 - Contradictions → propose winner in priority order: (1) `source_authority` of backing sources (primary > secondary > informal), (2) sources list length, (3) `last_confirmed` recency, (4) `confidence`; supersede weaker claim; ask human if top factors are tied
-- Low-quality pages → flag pages missing citations or key sections
+- Low-quality pages → check `quality` score; skip pages with `quality ≥ 0.8`; auto-fix structural issues on `quality 0.5–0.8`; flag for human review `quality < 0.5`; recompute score after fixes
 - Missing stubs, missing cross-references → create/add
 - Sessions >7 days undigested → trigger digest
 - Pages where `last_confirmed` >30 days ago → decay `confidence` by tier rate (working: 0.05, episodic: 0.04, semantic: 0.03, procedural: 0.02); floor 0.0
@@ -229,6 +229,7 @@ last_confirmed: YYYY-MM-DD
 confidence: 0.0–1.0
 memory_tier: working | episodic | semantic | procedural
 superseded_by: null
+quality: 0.0–1.0
 ---
 ## Definition
 ## Why It Matters
@@ -250,6 +251,7 @@ last_confirmed: YYYY-MM-DD
 confidence: 0.0–1.0
 memory_tier: working | episodic | semantic | procedural
 superseded_by: null
+quality: 0.0–1.0
 ---
 ## What / Who
 ## Relevance

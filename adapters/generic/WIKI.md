@@ -33,8 +33,9 @@ Active domains:
 
 3. **Log everything.** Append to `wiki/log.md` on every operation — ingest, query, crystallize, lint, consolidate.
 
-4. **Score every claim.** All pages carry `confidence` (0.0–1.0), `memory_tier`, and `last_confirmed`. Concepts/entities/threads also maintain a `## Sources` list.
+4. **Score every claim and page.** All pages carry `confidence` (0.0–1.0), `memory_tier`, `last_confirmed`, and `quality` (0.0–1.0). Concepts/entities/threads also maintain a `## Sources` list.
    Decay: per-tier rate every 30 days since `last_confirmed` (working −0.05, episodic −0.04, semantic −0.03, procedural −0.02). Reinforcement resets `last_confirmed`; sources/crystallize also raise confidence +0.05.
+   Quality scoring at write time: +0.3 all required sections present, +0.3 Sources≥1, +0.2 Relationships≥1 typed link, +0.2 no unresolved contradictions. Recompute on every update.
 
 5. **Supersede, don't overwrite.** When new info contradicts old, set `superseded_by` on the
    old page and mark it stale. Resolve by priority: `source_authority` (primary > secondary > informal), then sources list length, then `last_confirmed`, then `confidence`.
@@ -84,7 +85,7 @@ Use these in `## Relationships` blocks on entity and concept pages:
 | `> ingest [domain] raw/path/file.md` | Read → strip PII → extract entities → create source page (no tier/confidence) → update entity/concept pages (add to `## Sources`, raise confidence) → update index → check cross-domain → log |
 | `> [question]` | Check sessions → find pages (qmd `search`/`query -c <collection>` from `.claude/wiki-search-config` if available, else read index + grep) → traverse relationships → update `last_confirmed` on read pages → for `stale_check: auto` sources: compare `last_modified`/`content_hash` via MCP, re-ingest if changed → synthesize answer → auto-file if well-structured → log |
 | `> crystallize [title]` | Distill completed work into structured page, extract lessons as facts |
-| `> lint` | Find orphans, contradictions, stale claims, decay confidence, suggest missing pages |
+| `> lint` | Find orphans, contradictions, stale claims, decay confidence, suggest missing pages; skip `quality≥0.8`, auto-fix `0.5–0.8`, flag `<0.5` |
 | `> consolidate` | Promote pages up tier ladder based on evidence |
 | `> digest sessions` | Compress session exports into episodic observations → file under `wiki/[domain]/observations/` |
 | `> stale-check [domain]` | Re-fetch `manual` MCP sources + `auto` sources older than 7 days → compare `last_modified` or sha256 → re-ingest if changed → update `last_fetched` on all checked → log `N checked, M stale` → skip `stale_check: skip` and unreachable sources silently |
@@ -103,6 +104,7 @@ memory_tier: working | episodic | semantic | procedural
 last_updated: YYYY-MM-DD
 last_confirmed: YYYY-MM-DD
 superseded_by: null | [[path/to/newer-page]]
+quality: 0.0–1.0
 ---
 ```
 

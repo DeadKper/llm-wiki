@@ -224,6 +224,7 @@ last_confirmed: YYYY-MM-DD
 confidence: 0.0–1.0
 memory_tier: working | episodic | semantic | procedural
 superseded_by: null
+quality: 0.0–1.0
 ---
 
 ## Definition
@@ -254,6 +255,7 @@ last_confirmed: YYYY-MM-DD
 confidence: 0.0–1.0
 memory_tier: working | episodic | semantic | procedural
 superseded_by: null
+quality: 0.0–1.0
 ---
 
 ## What / Who
@@ -283,6 +285,7 @@ started: YYYY-MM-DD
 last_confirmed: YYYY-MM-DD
 confidence: 0.0–1.0
 memory_tier: working | episodic | semantic | procedural
+quality: 0.0–1.0
 ---
 
 ## The Question
@@ -303,9 +306,16 @@ memory_tier: working | episodic | semantic | procedural
 
 ## Special Files
 
+**Quality scoring** — Set `quality` on every concept/entity/thread page at write time (ingest, crystallize, query-file, update):
+- +0.3 if all required sections present (Definition/What/Question, Sources, Relationships)
+- +0.3 if `## Sources` has ≥1 entry
+- +0.2 if `## Relationships` has ≥1 typed link
+- +0.2 if content is consistent with related pages (no unresolved contradictions)
+- Score is 0.0–1.0. Recompute whenever page is updated.
+
 **wiki/index.md** — Master catalog. Update on every ingest — no exceptions.
-Format: `| [[path]] | description | domain | tier | confidence | date |`
-Source pages have no tier or confidence — use `-` in those columns.
+Format: `| [[path]] | description | domain | tier | confidence | quality | date |`
+Source pages have no tier, confidence, or quality — use `-` in those columns.
 LLM reads this first on every query. Also maintains an Entity Graph section
 of typed relationships, updated at ingest and crystallize.
 
@@ -437,7 +447,7 @@ Auto-fix where possible:
 - Orphan pages → add inbound link or flag for deletion
 - Contradictions between pages → propose resolution in priority order: (1) `source_authority` of backing sources (primary > secondary > informal), (2) sources list length, (3) `last_confirmed` recency, (4) `confidence`; supersede the weaker claim; ask human to confirm if top factors are tied
 - Stale claims → set `superseded_by`, link to newer claim
-- Low-quality pages → flag pages missing citations, missing key sections, or inconsistent with related pages
+- Low-quality pages → check `quality` score; skip pages with `quality ≥ 0.8`; auto-fix structural issues on `quality 0.5–0.8`; flag for human review `quality < 0.5`; recompute score after fixes
 - Missing page stubs → create them
 - Missing cross-references → add typed relationship links
 - Sessions >7 days undigested → trigger digest
