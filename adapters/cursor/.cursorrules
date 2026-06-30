@@ -29,7 +29,7 @@ At the start of every session, before answering:
 ## Core rules
 
 1. **Ingest = extract + score + link.** Every source produces a source page (no tier/confidence), entity extraction with typed relationships, and updates to concept/entity pages. Add to `## Sources` list on corroborated pages, raise confidence by 0.05, update `last_confirmed`. Typically 8–15 pages touched.
-2. **Index always current.** `index.md`, `log.md`, `overview.md` are reserved — no `type` field. Update trigger: whenever a page is added, removed, or body-changed, update index.md + log.md at all 3 levels (root/domain/subdir). Update overview.md only when the domain or cross-domain picture meaningfully shifts. Frontmatter-only changes → log only.
+2. **Index always current.** `index.md`, `log.md`, `overview.md` are reserved — no `type` field. Update trigger: whenever a page is added, removed, or body-changed, update index.md + log.md at all 3 levels (root/domain/subdir). Update overview.md only when domain/cross-domain picture meaningfully shifts. Frontmatter-only → log only. Log files: append-only, newest row on top, never edit past entries.
 3. **Log everything.** Append to `wiki/log.md` on every operation. Use `shared` as domain when query spans multiple domains.
 4. **Score every claim.** Knowledge pages (concepts, entities, threads) carry `confidence` (0.0–1.0), `memory_tier`, `last_confirmed`, and a `## Sources` list. Source pages have none of these.
 5. **Supersede, don't overwrite.** Resolve contradictions by priority: `source_authority` (primary > secondary > informal) → sources list length → `last_confirmed` → `confidence`.

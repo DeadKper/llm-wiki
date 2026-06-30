@@ -29,7 +29,7 @@ Active domains:
    with typed relationships, confidence scores, and wiki updates. Typically 8–15 pages touched.
    Sources that corroborate existing claims raise `confidence` by 0.05 and update `last_confirmed`.
 
-2. **Reserved filenames + update trigger.** `index.md`, `log.md`, `overview.md` are reserved — no `type` field. Whenever a wiki page is added, removed, or body-changed: update index.md + log.md at all 3 levels (root/domain/subdir). Update overview.md only when the domain or cross-domain picture meaningfully shifts. Frontmatter-only changes (confidence bumps, `last_confirmed`) → log.md only.
+2. **Reserved filenames + update trigger.** `index.md`, `log.md`, `overview.md` are reserved — no `type` field. Whenever a wiki page is added, removed, or body-changed: update index.md + log.md at all 3 levels (root/domain/subdir). Update overview.md only when domain or cross-domain picture meaningfully shifts. Frontmatter-only changes → log.md only. Log files: append-only, newest row on top, never edit past entries.
 
 3. **Log everything.** Append to `wiki/log.md` on every operation — ingest, query, crystallize, lint, consolidate.
 

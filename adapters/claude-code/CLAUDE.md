@@ -385,7 +385,7 @@ On supersede/delete: remove from subdir index; append `supersede` to subdir/doma
 On update (content change): update subdir + domain index entries; append `update` to all log levels.
 On crystallize/digest (new observation): add to observations/index + domain index; append to all log levels.
 
-**wiki/log.md** — Cross-domain activity timeline. Append-only. Never edit past entries.
+**wiki/log.md** — Cross-domain activity timeline. Append-only, newest entry on top. Never edit past entries.
 ```
 ## [YYYY-MM-DD] ingest       | DOMAIN_1   | N sources ingested; see DOMAIN_1/log.md
 ## [YYYY-MM-DD] lint         | all        | N orphans, M contradictions, K decays
