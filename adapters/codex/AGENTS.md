@@ -41,10 +41,9 @@ Add `wikiexit` to your shell profile for convenience (see SETUP-GUIDE.md).
 At the start of every session, before answering any questions:
 1. Read `wiki/log.md` tail to understand recent activity: `grep "^## \[" wiki/log.md | tail -10`
 2. Identify which domains were active recently
-3. Read `wiki/overview.md` and `wiki/DOMAIN/overview.md` for recently active domains
-4. Note open research threads (`research/threads/` with `status: active`)
+3. Note open research threads (`research/threads/` with `status: active`)
 
-Skip steps 2–4 if the wiki is empty or this is a bootstrap session.
+Skip steps 2–3 if the wiki is empty or this is a bootstrap session.
 
 ---
 
@@ -52,7 +51,7 @@ Skip steps 2–4 if the wiki is empty or this is a bootstrap session.
 
 1. On every ingest: extract entities with typed relationships, confidence-score claims, check for supersessions. Typically 8–15 pages touched per source.
 2. On every query: traverse typed relationships, not just keyword search.
-3. Always update `wiki/index.md` and append to `wiki/log.md` on every operation.
+3. Always update `wiki/index.md`, the relevant `wiki/[domain]/[subdir]/index.md`, `wiki/[domain]/[subdir]/log.md`, `wiki/[domain]/log.md`, and `wiki/log.md` on every ingest.
 4. Supersede, don't overwrite: when new info contradicts old, set `superseded_by` on the old page.
 
 ---
@@ -68,16 +67,18 @@ Skip steps 2–4 if the wiki is empty or this is a bootstrap session.
    - Corroborates claim: add to `## Sources` list, raise `confidence` by 0.05 (cap 1.0), update `last_confirmed`
    - Contradicts claim: determine weaker by priority — (1) `source_authority`, (2) sources list length, (3) `last_confirmed`, (4) `confidence`; `superseded_by` on weaker page, mark stale, log supersede line
 6. Update `wiki/index.md`
-7. Check cross-domain connections → `wiki/shared/`
-8. If this source meaningfully shifts the domain's picture, update `wiki/[domain]/overview.md`; if it shifts cross-domain synthesis, update `wiki/overview.md`
-9. If qmd is available, run `qmd update` to re-index the new pages (then `qmd embed` if vector index is in use); always keep `wiki/index.md` up to date regardless
-10. Append to `wiki/log.md`; report: files touched, entities extracted, corroborations, supersessions
+7. Update `wiki/[domain]/[subdir]/index.md` — add new entry, update entity graph if relationships changed
+8. Append to `wiki/[domain]/[subdir]/log.md` and `wiki/[domain]/log.md`
+9. Check cross-domain connections → `wiki/shared/`
+10. If this source meaningfully shifts the domain's picture, update `wiki/[domain]/overview.md`; if it shifts cross-domain synthesis, update `wiki/overview.md`
+11. If qmd is available, run `qmd update` to re-index the new pages (then `qmd embed` if vector index is in use); always keep `wiki/index.md` up to date regardless
+12. Append to `wiki/log.md`; report: files touched, entities extracted, corroborations, supersessions
 
 ### `> [question]` — query
 1. Check sessions: `bash scripts/recall.sh "[keywords]"`
 2. Find relevant wiki pages:
    - If qmd available: use `qmd search` (exact terms) or structured `qmd query` with `intent:`/`lex:`/`vec:` fields; pass collection name(s) via `-c <name>`. Collection names come from `.claude/wiki-search-config` (`WIKI_COLLECTIONS`); default to the wiki's own collection.
-   - Otherwise: read `wiki/index.md` and identify relevant pages from the catalog
+   - Otherwise: read `wiki/index.md` then the relevant `wiki/[domain]/[subdir]/index.md` to narrow the path before reading any page
 3. Drill into pages, traverse typed relationships
 4. Update `last_confirmed` to today on each page read (access resets decay clock; does not raise confidence)
    - For any source page with `stale_check: auto`: compare `last_modified` or `content_hash` against the live source via its MCP gateway. If changed, re-fetch and re-ingest that source before synthesizing — the answer must reflect current data.
@@ -153,7 +154,9 @@ Create full directory structure, seed skeleton pages, initialize `sessions.db`:
 - `raw/DOMAIN_N/` per domain
 - `wiki/DOMAIN_N/{sources,observations,concepts,entities}/` per domain
 - `wiki/DOMAIN_N/research/threads/` if needed
-- `wiki/DOMAIN_N/overview.md` and `wiki/overview.md` — seeded with placeholders
+- `wiki/DOMAIN_N/overview.md` and `wiki/overview.md` — seeded with `type: overview` frontmatter + placeholder body
+- `wiki/DOMAIN_N/index.md` + `wiki/DOMAIN_N/log.md` — seed empty at domain level
+- `wiki/DOMAIN_N/{subdir}/index.md` + `wiki/DOMAIN_N/{subdir}/log.md` — seed empty in every subdirectory
 
 ---
 
@@ -196,6 +199,7 @@ concept/entity pages that aggregate claims from multiple sources.
 
 ```markdown
 ---
+type: source
 title: "Source Title"
 domain: DOMAIN_1 | DOMAIN_2 | DOMAIN_3
 date_ingested: YYYY-MM-DD
@@ -222,6 +226,7 @@ stale_check: auto             # auto | manual | skip — auto=re-fetch at query 
 ### concepts/NAME.md
 ```markdown
 ---
+type: concept
 title: "Concept Name"
 domain: DOMAIN_1 | DOMAIN_2 | DOMAIN_3 | shared
 last_updated: YYYY-MM-DD
@@ -243,6 +248,7 @@ quality: 0.0–1.0
 ### entities/NAME.md
 ```markdown
 ---
+type: entity
 title: "Entity Name"
 entity_type: person | org | product | place | regulation | tool | system | project | file | decision | library
 domain: DOMAIN_1 | DOMAIN_2 | DOMAIN_3 | shared

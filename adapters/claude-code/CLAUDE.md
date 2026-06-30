@@ -46,18 +46,34 @@ llm-wiki/
 ├── wiki/                         # LLM-maintained. Create and update freely.
 │   ├── index.md                  # Master catalog — update on EVERY ingest
 │   ├── log.md                    # Append-only operation record
-│   ├── overview.md               # Cross-domain synthesis
+│   ├── overview.md               # Cross-domain synthesis (type: overview)
 │   ├── DOMAIN_1/
-│   │   ├── overview.md
+│   │   ├── index.md              # Domain index + entity graph — update on EVERY ingest
+│   │   ├── log.md                # Domain-level append-only log — update on EVERY ingest
+│   │   ├── overview.md           # Domain synthesis (type: overview)
 │   │   ├── sources/              # Ingested raw source summaries (no tier/confidence)
+│   │   │   ├── index.md          # Sources listing — update on EVERY ingest
+│   │   │   └── log.md
 │   │   ├── observations/         # Digested session observations (episodic, have tier/confidence)
+│   │   │   ├── index.md
+│   │   │   └── log.md
 │   │   ├── concepts/
+│   │   │   ├── index.md
+│   │   │   └── log.md
 │   │   ├── entities/
+│   │   │   ├── index.md          # Entity listing + entity graph — update on EVERY ingest
+│   │   │   └── log.md
 │   │   ├── research/threads/     # Active research threads (optional)
+│   │   │   ├── index.md
+│   │   │   └── log.md
 │   │   └── [DOMAIN_1_SUBDIR]/    # Additional domain-specific subdirs
+│   │       ├── index.md
+│   │       └── log.md
 │   ├── DOMAIN_2/ ...
 │   ├── DOMAIN_3/ ...
 │   └── shared/
+│       ├── index.md
+│       └── log.md
 ├── sessions/
 │   ├── exports/                  # Auto-exported transcripts (gitignored)
 │   ├── confidential/             # Encrypted exports (gitignored)
@@ -102,10 +118,9 @@ FTS5 — searchable with no API calls, no embeddings. Just markdown and SQL.
 **At session start, the LLM should:**
 1. Read `wiki/log.md` tail (`grep "^## \[" wiki/log.md | tail -10`) to understand recent activity
 2. Identify which domains were active in recent operations
-3. Read `wiki/overview.md` and the per-domain `wiki/DOMAIN/overview.md` for each recently active domain
-4. Note any open threads (`research/threads/` with `status: active`) in those domains
+3. Note any open threads (`research/threads/` with `status: active`) in those domains
 
-This gives the session context without reading the entire wiki. Skip steps 2–4 if the wiki is empty or this is a bootstrap session.
+This gives the session context without reading the entire wiki. Skip steps 2–3 if the wiki is empty or this is a bootstrap session.
 
 ### Personal wiki integration
 
@@ -176,6 +191,7 @@ entity pages that aggregate claims across multiple sources.
 
 ```markdown
 ---
+type: source
 title: "Source Title"
 domain: DOMAIN_1 | DOMAIN_2 | DOMAIN_3
 date_ingested: YYYY-MM-DD
@@ -216,6 +232,7 @@ Used by LINT contradiction resolution: claims backed by higher-authority sources
 ### concepts/NAME.md
 ```markdown
 ---
+type: concept
 title: "Concept Name"
 domain: DOMAIN_1 | DOMAIN_2 | DOMAIN_3 | shared
 tags: []
@@ -247,6 +264,7 @@ quality: 0.0–1.0
 ### entities/NAME.md
 ```markdown
 ---
+type: entity
 title: "Entity Name"
 entity_type: person | org | product | place | regulation | tool | system | project | file | decision | library
 domain: DOMAIN_1 | DOMAIN_2 | DOMAIN_3 | shared
@@ -278,6 +296,7 @@ quality: 0.0–1.0
 ### research/threads/THREAD.md
 ```markdown
 ---
+type: thread
 title: "Thread: [Question]"
 domain: DOMAIN_1 | DOMAIN_2 | DOMAIN_3
 status: active | paused | closed
@@ -319,9 +338,29 @@ Source pages have no tier, confidence, or quality — use `-` in those columns.
 LLM reads this first on every query. Also maintains an Entity Graph section
 of typed relationships, updated at ingest and crystallize.
 
-**wiki/overview.md** — High-level synthesis across all domains. Update after any ingest or crystallize that meaningfully shifts the overall picture. Not every ingest triggers an update — only when the cross-domain synthesis changes. Seed this during `> bootstrap`.
+**wiki/overview.md** — High-level synthesis across all domains. Frontmatter: `type: overview`. Update after any ingest or crystallize that meaningfully shifts the overall picture. Not every ingest triggers an update — only when the cross-domain synthesis changes. Seed this during `> bootstrap`.
 
-**wiki/DOMAIN/overview.md** — Per-domain synthesis. Update when a domain's architecture, key patterns, or entity map changes. Seed during `> bootstrap`. The LLM reads the relevant domain overview before answering domain-specific queries.
+**wiki/DOMAIN/overview.md** — Per-domain synthesis. Frontmatter: `type: overview`. Update when a domain's architecture, key patterns, or entity map changes. Seed during `> bootstrap`.
+
+**wiki/[domain]/[subdir]/index.md** — Directory-level catalog. OKF §6 format: no frontmatter, grouped bullet lists, Entity Graph section at end. Update on every ingest that adds or changes a file in that directory.
+```markdown
+# <Subdir> Index
+
+## <Group Heading>
+
+* [Title](filename.md) - one-line description
+
+## Entity Graph
+
+> Types: uses | depends_on | impacts | owns | supersedes
+A → uses → B
+```
+
+**wiki/[domain]/[subdir]/log.md** — Directory-scoped append-only log. Same format as root `log.md` but scoped to files in that directory only. Update on every ingest.
+
+**wiki/[domain]/index.md** — Domain-level catalog: all subdirectory groups + full domain entity graph. Update on every ingest.
+
+**wiki/[domain]/log.md** — Domain-level append-only log. Mirrors root `log.md` scoped to that domain.
 
 **wiki/log.md** — Append-only. Never edit past entries.
 ```
@@ -357,20 +396,23 @@ Parseable: `grep "^## \[" wiki/log.md | tail -10`
    - If source **corroborates** an existing claim: add to `## Sources` list, raise `confidence` by 0.05 (cap 1.0), update `last_confirmed`
    - If source **contradicts** an existing claim: determine the weaker claim by priority — (1) `source_authority`, (2) sources list length, (3) `last_confirmed`, (4) `confidence`; set `superseded_by` on the weaker claim, mark it stale; log a supersede entry
 7. Update `wiki/index.md` (tier and confidence columns)
-8. Check domain-specific implications (Domain Conventions below)
-9. Check cross-domain connections → `wiki/shared/`
-10. If this source meaningfully shifts the domain's picture, update `wiki/[domain]/overview.md`; if it shifts the cross-domain synthesis, update `wiki/overview.md`
-11. If qmd skill available, run `qmd update` to re-index the new pages (then `qmd embed` if vector index is in use); always keep `wiki/index.md` up to date regardless
-12. Append to `wiki/log.md` — one ingest line; one supersede line per supersession
-13. Report: files touched, entities extracted, corroborations, contradictions, supersessions
+8. Update `wiki/[domain]/[subdir]/index.md` — add new source/entity entry, update entity graph if relationships changed
+9. Append to `wiki/[domain]/[subdir]/log.md` — one entry for the new page
+10. Append to `wiki/[domain]/log.md` — domain-level ingest entry
+11. Check domain-specific implications (Domain Conventions below)
+12. Check cross-domain connections → `wiki/shared/`
+13. If this source meaningfully shifts the domain's picture, update `wiki/[domain]/overview.md`; if it shifts the cross-domain synthesis, update `wiki/overview.md`
+14. If qmd skill available, run `qmd update` to re-index the new pages (then `qmd embed` if vector index is in use); always keep `wiki/index.md` up to date regardless
+15. Append to `wiki/log.md` — one ingest line; one supersede line per supersession
+16. Report: files touched, entities extracted, corroborations, contradictions, supersessions
 
-A single ingest typically touches 8–15 wiki pages.
+A single ingest typically touches 10–18 wiki pages (including directory index/log updates).
 
 ### QUERY — `> [question]`
 1. `bash .claude/scripts/recall.sh "[keywords]"` — check past sessions
 2. Find relevant wiki pages:
    - If qmd skill available: read `.claude/wiki-search-config` to get `WIKI_COLLECTIONS`; default to the wiki's own collection name plus `personal-wiki` if `.claude/personal-wiki-path` is set. Run `qmd search` (exact terms/names) or structured `qmd query` with `intent:`/`lex:`/`vec:` fields, passing each collection as a `-c <name>` flag.
-   - Otherwise: read `wiki/index.md` and identify relevant pages from the catalog
+   - Otherwise: read `wiki/index.md` then the relevant `wiki/[domain]/[subdir]/index.md` to narrow the path before reading any page
 3. Read pages, traverse typed relationships; update `last_confirmed` to today on each page read (access counts as reinforcement — it resets the decay clock without raising confidence)
    - For any source page referenced with `stale_check: auto`: check if the source has changed by comparing `last_modified` or `content_hash` against the live source via MCP. If changed, re-fetch the content and run a full ingest for that source before synthesizing the answer — the answer should reflect current data.
 4. Synthesize with inline citations: `[[wiki/domain/path]]`
@@ -509,8 +551,10 @@ Create full directory structure, seed skeleton pages, install scripts, initializ
 - `raw/DOMAIN_N/` — one per domain (immutable source storage)
 - `wiki/DOMAIN_N/{sources,observations,concepts,entities}/` — one per domain
 - `wiki/DOMAIN_N/research/threads/` — if the domain will use research threads
-- `wiki/DOMAIN_N/overview.md` — seed with placeholder, update as domain grows
-- `wiki/overview.md` — seed with placeholder
+- `wiki/DOMAIN_N/overview.md` — seed with `type: overview` frontmatter + placeholder body
+- `wiki/overview.md` — seed with `type: overview` frontmatter + placeholder body
+- `wiki/DOMAIN_N/index.md` + `wiki/DOMAIN_N/log.md` — seed empty at domain level
+- `wiki/DOMAIN_N/{subdir}/index.md` + `wiki/DOMAIN_N/{subdir}/log.md` — seed empty in every subdirectory
 If separate repo (`[s]`) was chosen during customize, verify `.claude/personal-wiki-path` resolves.
 If isolated domain (`[i]`) was chosen, create `wiki/DOMAIN_N/` structure for the personal domain too.
 
