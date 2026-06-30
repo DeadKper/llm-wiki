@@ -512,7 +512,14 @@ Distill a completed work thread into wiki pages:
 10. Log: `## [YYYY-MM-DD] crystallize | [domain] | [title]`
 
 ### LINT — `> lint [domain]`
-Auto-fix where possible:
+Auto-fix where possible. When scanning files with bash, skip reserved filenames:
+```bash
+for f in wiki/[domain]/**/*.md; do
+  name=$(basename "$f")
+  [[ "$name" == "index.md" || "$name" == "log.md" || "$name" == "overview.md" ]] && continue
+  # checks here
+done
+```
 - Orphan pages → add inbound link or flag for deletion
 - Contradictions between pages → propose resolution in priority order: (1) `source_authority` of backing sources (primary > secondary > informal), (2) sources list length, (3) `last_confirmed` recency, (4) `confidence`; supersede the weaker claim; ask human to confirm if top factors are tied
 - Stale claims → set `superseded_by`, link to newer claim

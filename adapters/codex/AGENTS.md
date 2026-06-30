@@ -121,7 +121,14 @@ Distill a completed work thread:
 8. Log: `## [YYYY-MM-DD] crystallize | [domain] | [title]`
 
 ### `> lint [domain]`
-Find and fix:
+Find and fix. When scanning with bash, skip reserved filenames:
+```bash
+for f in wiki/[domain]/**/*.md; do
+  name=$(basename "$f")
+  [[ "$name" == "index.md" || "$name" == "log.md" || "$name" == "overview.md" ]] && continue
+  # checks here
+done
+```
 - Orphan pages → link or flag
 - Contradictions → propose winner in priority order: (1) `source_authority` of backing sources (primary > secondary > informal), (2) sources list length, (3) `last_confirmed` recency, (4) `confidence`; supersede weaker claim; ask human if top factors are tied
 - Low-quality pages → check `quality` score; skip pages with `quality ≥ 0.8`; auto-fix structural issues on `quality 0.5–0.8`; flag for human review `quality < 0.5`; recompute score after fixes
