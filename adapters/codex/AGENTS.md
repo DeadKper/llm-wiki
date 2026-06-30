@@ -66,13 +66,15 @@ Skip steps 2–3 if the wiki is empty or this is a bootstrap session.
 5. For each existing entity/concept page this source touches:
    - Corroborates claim: add to `## Sources` list, raise `confidence` by 0.05 (cap 1.0), update `last_confirmed`
    - Contradicts claim: determine weaker by priority — (1) `source_authority`, (2) sources list length, (3) `last_confirmed`, (4) `confidence`; `superseded_by` on weaker page, mark stale, log supersede line
-6. Update `wiki/index.md`
-7. Update `wiki/[domain]/[subdir]/index.md` — add new entry, update entity graph if relationships changed
-8. Append to `wiki/[domain]/[subdir]/log.md` and `wiki/[domain]/log.md`
-9. Check cross-domain connections → `wiki/shared/`
-10. If this source meaningfully shifts the domain's picture, update `wiki/[domain]/overview.md`; if it shifts cross-domain synthesis, update `wiki/overview.md`
-11. If qmd is available, run `qmd update` to re-index the new pages (then `qmd embed` if vector index is in use); always keep `wiki/index.md` up to date regardless
-12. Append to `wiki/log.md`; report: files touched, entities extracted, corroborations, supersessions
+6. Update `wiki/index.md` — add entity to Key entities if procedural/semantic; update entity graph
+7. Update `wiki/[domain]/[subdir]/index.md` — add entry; update entity graph if relationships changed
+8. Update `wiki/[domain]/index.md` — add to relevant group; update entity graph
+9. Append to `wiki/[domain]/[subdir]/log.md` and `wiki/[domain]/log.md`
+10. Append to `wiki/log.md` — count summary; one supersede line per supersession
+11. Check cross-domain connections → `wiki/shared/`
+12. If this source meaningfully shifts the domain's picture, update `wiki/[domain]/overview.md`; if it shifts cross-domain synthesis, update `wiki/overview.md`
+13. If qmd is available, run `qmd update` to re-index new pages; always keep indexes current regardless
+14. Report: files touched, entities extracted, corroborations, supersessions
 
 ### `> [question]` — query
 1. Check sessions: `bash scripts/recall.sh "[keywords]"`
@@ -103,8 +105,9 @@ Compress raw session exports into episodic observations. This promotes raw sessi
    - Include `confidence`, `memory_tier`, `last_confirmed` — these are knowledge claims, not source summaries
 4. For each existing page corroborated: raise `confidence` by 0.05, update `last_confirmed`
 5. For each existing page contradicted: flag for supersession; observation pages have no `source_authority` — prefer existing primary/secondary-backed claims unless confidence gap is large
-6. Move processed files to `sessions/wiki-digests/`
-7. Log: `## [YYYY-MM-DD] digest | sessions | N sessions → M pages (K episodic)`
+6. For each observation page filed: add to observations/index + domain index; append to observations/domain/root log.md
+7. Move processed files to `sessions/wiki-digests/`
+8. Log: `## [YYYY-MM-DD] digest | sessions | N sessions → M pages (K episodic)`
 
 ### `> crystallize [title]`
 Distill a completed work thread:
@@ -113,7 +116,9 @@ Distill a completed work thread:
 3. Existing pages confirmed by session: raise `confidence` by 0.05, update `last_confirmed`
 4. Existing pages challenged by session: propose supersession or flag contradiction
 5. Promote memory tier where evidence warrants
-6. Log: `## [YYYY-MM-DD] crystallize | [domain] | [title]`
+6. For each new observation page filed: add to observations/index + domain index; append to observations/domain/root log.md
+7. If domain picture shifts: update `wiki/[domain]/overview.md`
+8. Log: `## [YYYY-MM-DD] crystallize | [domain] | [title]`
 
 ### `> lint [domain]`
 Find and fix:
@@ -123,6 +128,8 @@ Find and fix:
 - Missing stubs, missing cross-references → create/add
 - Sessions >7 days undigested → trigger digest
 - Pages where `last_confirmed` >30 days ago → decay `confidence` by tier rate (working: 0.05, episodic: 0.04, semantic: 0.03, procedural: 0.02); floor 0.0
+- For each stub created: add to subdir index + domain index; append to subdir log
+- For each page deleted/superseded: remove from subdir index; append `supersede` to subdir/domain/root logs
 
 ### `> consolidate`
 Promote: `working` → `episodic` (first digest); `episodic` → `semantic` (≥0.7, 2+ sources in `## Sources`); `semantic` → `procedural` (≥0.9, 3+ sources in `## Sources`).
@@ -145,6 +152,11 @@ Sources unreachable (MCP unavailable, bad URL) → skip silently, log as `unreac
 
 ### `> update [domain] [path]`
 Update a wiki page from chat. For corrections, meeting notes, decisions.
+1. Apply the change
+2. If title/description changed: update `wiki/[domain]/[subdir]/index.md` and `wiki/[domain]/index.md`
+3. If relationships changed: update entity graph in subdir index, domain index, and `wiki/index.md`
+4. If domain picture shifts: update overviews
+5. Append to subdir/domain/root log.md
 
 ### `> customize`
 Replace DOMAIN_1/2/3 placeholders, configure domain conventions and page formats.
@@ -154,7 +166,7 @@ Create full directory structure, seed skeleton pages, initialize `sessions.db`:
 - `raw/DOMAIN_N/` per domain
 - `wiki/DOMAIN_N/{sources,observations,concepts,entities}/` per domain
 - `wiki/DOMAIN_N/research/threads/` if needed
-- `wiki/DOMAIN_N/overview.md` and `wiki/overview.md` — seeded with `type: overview` frontmatter + placeholder body
+- `wiki/DOMAIN_N/overview.md` and `wiki/overview.md` — seeded with `title` + `domain` frontmatter + placeholder body (reserved — no `type` field)
 - `wiki/DOMAIN_N/index.md` + `wiki/DOMAIN_N/log.md` — seed empty at domain level
 - `wiki/DOMAIN_N/{subdir}/index.md` + `wiki/DOMAIN_N/{subdir}/log.md` — seed empty in every subdirectory
 

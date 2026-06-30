@@ -29,7 +29,7 @@ Active domains:
    with typed relationships, confidence scores, and wiki updates. Typically 8–15 pages touched.
    Sources that corroborate existing claims raise `confidence` by 0.05 and update `last_confirmed`.
 
-2. **Index always current.** Update `wiki/index.md`, the relevant `wiki/[domain]/[subdir]/index.md` (add entry + update entity graph), `wiki/[domain]/[subdir]/log.md`, and `wiki/[domain]/log.md` on every ingest.
+2. **Reserved filenames + update trigger.** `index.md`, `log.md`, `overview.md` are reserved — no `type` field. Whenever a wiki page is added, removed, or body-changed: update index.md + log.md at all 3 levels (root/domain/subdir). Update overview.md only when the domain or cross-domain picture meaningfully shifts. Frontmatter-only changes (confidence bumps, `last_confirmed`) → log.md only.
 
 3. **Log everything.** Append to `wiki/log.md` on every operation — ingest, query, crystallize, lint, consolidate.
 
@@ -43,7 +43,7 @@ Active domains:
 6. **Check staleness at query time.** For any source page referenced with `stale_check: auto`, compare `last_modified` or `content_hash` against the live source via its MCP gateway. If changed, re-fetch and re-ingest that source before synthesizing — the answer must reflect current data.
 7. **File good answers.** After a query, if the answer is well-structured and cites sources → file it as a wiki page automatically. Update `last_confirmed` on every page read during the query (access resets the decay clock). Always log the query regardless.
 
-7. **Load context at session start.** Read `wiki/log.md` tail to identify recently active domains. Read `wiki/[domain]/[subdir]/index.md` for recently active areas. Note open research threads.
+7. **Load context at session start.** Read `wiki/log.md` tail to identify recently active domains. Read `wiki/index.md` then `wiki/[domain]/index.md` for those domains. Note open research threads.
 
 ---
 
@@ -83,7 +83,7 @@ Use these in `## Relationships` blocks on entity and concept pages:
 | Command | Steps |
 |---------|-------|
 | `> ingest [domain] raw/path/file.md` | Read → strip PII → extract entities → create source page (no tier/confidence) → update entity/concept pages (add to `## Sources`, raise confidence) → update index → check cross-domain → log |
-| `> [question]` | Check sessions → find pages (qmd `search`/`query -c <collection>` from `.claude/wiki-search-config` if available, else read `wiki/index.md` then `wiki/[domain]/[subdir]/index.md`) → traverse relationships → update `last_confirmed` on read pages → for `stale_check: auto` sources: compare `last_modified`/`content_hash` via MCP, re-ingest if changed → synthesize answer → auto-file if well-structured → log |
+| `> [question]` | Check sessions → read `wiki/index.md` then `wiki/[domain]/index.md` then `wiki/[domain]/[subdir]/index.md` → traverse relationships → update `last_confirmed` on read pages → for `stale_check: auto` sources: compare `last_modified`/`content_hash` via MCP, re-ingest if changed → synthesize answer → auto-file if well-structured → log |
 | `> crystallize [title]` | Distill completed work into structured page, extract lessons as facts |
 | `> lint` | Find orphans, contradictions, stale claims, decay confidence, suggest missing pages; skip `quality≥0.8`, auto-fix `0.5–0.8`, flag `<0.5` |
 | `> consolidate` | Promote pages up tier ladder based on evidence |
@@ -110,6 +110,8 @@ quality: 0.0–1.0
 ```
 
 These pages also include a `## Sources` section listing all sources that back the page — used for tier promotion (2+ for semantic, 3+ for procedural) and as quick references to backing material.
+
+**Reserved pages** (`index.md`, `log.md`, `overview.md`) — no `type` field required.
 
 **Source pages** (`sources/SLUG.md`) are immutable summaries — no `confidence`, `memory_tier`, or `last_confirmed`. They require:
 ```yaml

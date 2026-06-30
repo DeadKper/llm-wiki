@@ -46,11 +46,11 @@ llm-wiki/
 ├── wiki/                         # LLM-maintained. Create and update freely.
 │   ├── index.md                  # Master catalog — update on EVERY ingest
 │   ├── log.md                    # Append-only operation record
-│   ├── overview.md               # Cross-domain synthesis (type: overview)
+│   ├── overview.md               # Cross-domain synthesis — reserved
 │   ├── DOMAIN_1/
 │   │   ├── index.md              # Domain index + entity graph — update on EVERY ingest
 │   │   ├── log.md                # Domain-level append-only log — update on EVERY ingest
-│   │   ├── overview.md           # Domain synthesis (type: overview)
+│   │   ├── overview.md           # Domain synthesis — reserved
 │   │   ├── sources/              # Ingested raw source summaries (no tier/confidence)
 │   │   │   ├── index.md          # Sources listing — update on EVERY ingest
 │   │   │   └── log.md
@@ -332,17 +332,31 @@ quality: 0.0–1.0
 - +0.2 if content is consistent with related pages (no unresolved contradictions)
 - Score is 0.0–1.0. Recompute whenever page is updated.
 
-**wiki/index.md** — Master catalog. Update on every ingest — no exceptions.
-Format: `| [[path]] | description | domain | tier | confidence | quality | date |`
-Source pages have no tier, confidence, or quality — use `-` in those columns.
-LLM reads this first on every query. Also maintains an Entity Graph section
-of typed relationships, updated at ingest and crystallize.
+**wiki/index.md** — Navigation map. Updated on every ingest. Contains one section per domain with:
+- Link to `[domain]/index.md` for the full catalog
+- **Key entities** (procedural/semantic only, by name)
+- **Key concepts** (by name)
+- Pointer to `[domain]/sources/index.md` with source count
+- Compact Entity Graph (cross-domain relationships + core typed edges)
 
-**wiki/overview.md** — High-level synthesis across all domains. Frontmatter: `type: overview`. Update after any ingest or crystallize that meaningfully shifts the overall picture. Not every ingest triggers an update — only when the cross-domain synthesis changes. Seed this during `> bootstrap`.
+LLM reads this first on every query to orient, then drills into domain/subdir indexes.
+Do NOT list every page here — that is the job of domain and subdir indexes.
 
-**wiki/DOMAIN/overview.md** — Per-domain synthesis. Frontmatter: `type: overview`. Update when a domain's architecture, key patterns, or entity map changes. Seed during `> bootstrap`.
+**Index hierarchy — read order:**
+1. `wiki/index.md` — orient (nav map, key entities by name, entity graph)
+2. `wiki/[domain]/index.md` — all entities + concepts + observations for that domain
+3. `wiki/[domain]/[subdir]/index.md` — full file listing for that specific directory
+4. Individual page — read only after the index confirms it is the right one
 
-**wiki/[domain]/[subdir]/index.md** — Directory-level catalog. OKF §6 format: no frontmatter, grouped bullet lists, Entity Graph section at end. Update on every ingest that adds or changes a file in that directory.
+**wiki/overview.md** — High-level synthesis across all domains. **Reserved filename** — no `type` field. Update after any ingest or crystallize that meaningfully shifts the overall picture. Not every ingest triggers an update — only when the cross-domain synthesis changes. Seed this during `> bootstrap`.
+
+**wiki/DOMAIN/overview.md** — Per-domain synthesis. **Reserved filename** — no `type` field. Update when a domain's architecture, key patterns, or entity map changes. Seed during `> bootstrap`.
+
+**Reserved filenames** — `index.md`, `log.md`, and `overview.md` at any directory level are reserved. They MUST NOT be used for concept/entity pages and do NOT require a `type` field.
+
+**Update trigger rule** — `index.md`, `log.md`, and `overview.md` at all three levels (root / domain / subdir) MUST be updated whenever a wiki page is **added**, **removed**, or has a **meaningful content change** (body change — not frontmatter-only). This applies regardless of which operation caused the change: ingest, update, crystallize, digest, supersede, lint. Frontmatter-only changes (confidence bumps, `last_confirmed` resets) do NOT trigger index/overview updates — only `log.md` gets an entry.
+
+**wiki/[domain]/[subdir]/index.md** — Directory-level catalog. OKF §6 format: no frontmatter, grouped bullet lists, Entity Graph section at end. Update whenever a file in this directory is added, removed, or has a meaningful content change.
 ```markdown
 # <Subdir> Index
 
@@ -356,26 +370,32 @@ of typed relationships, updated at ingest and crystallize.
 A → uses → B
 ```
 
-**wiki/[domain]/[subdir]/log.md** — Directory-scoped append-only log. Same format as root `log.md` but scoped to files in that directory only. Update on every ingest.
+**wiki/[domain]/[subdir]/log.md** — Directory-scoped append-only log. Same format as root `log.md`, scoped to files in that directory. Append on every operation that touches a file here.
 
-**wiki/[domain]/index.md** — Domain-level catalog: all subdirectory groups + full domain entity graph. Update on every ingest.
+**wiki/[domain]/index.md** — Domain-level catalog: all subdirectory groups + full domain entity graph. Update whenever any file in the domain is added, removed, or content-changed.
 
-**wiki/[domain]/log.md** — Domain-level append-only log. Mirrors root `log.md` scoped to that domain.
+**wiki/[domain]/log.md** — Domain batch summaries. Collapse same-date ingests into one line. Keep lint/consolidate/crystallize verbatim. Header names the subdir logs.
 
-**wiki/log.md** — Append-only. Never edit past entries.
+**Log hierarchy — write rule:**
+- `wiki/log.md` — cross-domain activity timeline. One summary per domain per date. Keep lint/consolidate/crystallize/digest/supersede verbatim.
+- `wiki/[domain]/log.md` — domain batch summaries + lint/consolidate/crystallize verbatim.
+- `wiki/[domain]/[subdir]/log.md` — full per-file detail, one entry per page touched.
+On every ingest: full detail → subdir log; batch summary → domain log; count summary → root log.
+On supersede/delete: remove from subdir index; append `supersede` to subdir/domain/root logs.
+On update (content change): update subdir + domain index entries; append `update` to all log levels.
+On crystallize/digest (new observation): add to observations/index + domain index; append to all log levels.
+
+**wiki/log.md** — Cross-domain activity timeline. Append-only. Never edit past entries.
 ```
-## [YYYY-MM-DD] ingest     | DOMAIN_1 | Source Title — N entities
-## [YYYY-MM-DD] query      | DOMAIN_2 | Question answered + filed
-## [YYYY-MM-DD] query      | shared   | Cross-domain question answered
-## [YYYY-MM-DD] lint       | all      | N orphans, M contradictions, K decays
-## [YYYY-MM-DD] digest     | sessions | N sessions → M wiki pages
-## [YYYY-MM-DD] crystallize| DOMAIN_1 | Title → M facts
-## [YYYY-MM-DD] supersede  | DOMAIN_2 | old → new
-## [YYYY-MM-DD] consolidate | all      | N working→episodic, M episodic→semantic
-## [YYYY-MM-DD] stale-check | DOMAIN_1 | N checked, M stale
-## [YYYY-MM-DD] update      | DOMAIN_3 | description
+## [YYYY-MM-DD] ingest       | DOMAIN_1   | N sources ingested; see DOMAIN_1/log.md
+## [YYYY-MM-DD] lint         | all        | N orphans, M contradictions, K decays
+## [YYYY-MM-DD] consolidate  | all        | N working→episodic, M episodic→semantic
+## [YYYY-MM-DD] crystallize  | DOMAIN_1   | Title → M facts
+## [YYYY-MM-DD] digest       | sessions   | N sessions → M wiki pages
+## [YYYY-MM-DD] supersede    | DOMAIN_2   | old → new
+## [YYYY-MM-DD] stale-check  | DOMAIN_1   | N checked, M stale
 ```
-Parseable: `grep "^## \[" wiki/log.md | tail -10`
+Parseable at any level: `grep "^## \[" wiki/log.md | tail -10`
 
 ---
 
@@ -395,18 +415,18 @@ Parseable: `grep "^## \[" wiki/log.md | tail -10`
 6. For each existing entity/concept page this source touches:
    - If source **corroborates** an existing claim: add to `## Sources` list, raise `confidence` by 0.05 (cap 1.0), update `last_confirmed`
    - If source **contradicts** an existing claim: determine the weaker claim by priority — (1) `source_authority`, (2) sources list length, (3) `last_confirmed`, (4) `confidence`; set `superseded_by` on the weaker claim, mark it stale; log a supersede entry
-7. Update `wiki/index.md` (tier and confidence columns)
-8. Update `wiki/[domain]/[subdir]/index.md` — add new source/entity entry, update entity graph if relationships changed
-9. Append to `wiki/[domain]/[subdir]/log.md` — one entry for the new page
-10. Append to `wiki/[domain]/log.md` — domain-level ingest entry
-11. Check domain-specific implications (Domain Conventions below)
-12. Check cross-domain connections → `wiki/shared/`
-13. If this source meaningfully shifts the domain's picture, update `wiki/[domain]/overview.md`; if it shifts the cross-domain synthesis, update `wiki/overview.md`
-14. If qmd skill available, run `qmd update` to re-index the new pages (then `qmd embed` if vector index is in use); always keep `wiki/index.md` up to date regardless
-15. Append to `wiki/log.md` — one ingest line; one supersede line per supersession
+7. Update `wiki/index.md` — add new entity to Key entities if procedural/semantic; update entity graph if relationships changed
+8. Update `wiki/[domain]/[subdir]/index.md` — add entry; update entity graph if relationships changed
+9. Update `wiki/[domain]/index.md` — add to relevant group; update entity graph if relationships changed
+10. Append to `wiki/[domain]/[subdir]/log.md` and `wiki/[domain]/log.md`
+11. Append to `wiki/log.md` — count summary; one supersede line per supersession
+12. Check domain-specific implications (Domain Conventions below)
+13. Check cross-domain connections → `wiki/shared/`
+14. If this source meaningfully shifts the domain's picture, update `wiki/[domain]/overview.md`; if it shifts the cross-domain synthesis, update `wiki/overview.md`
+15. If qmd skill available, run `qmd update` to re-index new pages; always keep indexes current regardless
 16. Report: files touched, entities extracted, corroborations, contradictions, supersessions
 
-A single ingest typically touches 10–18 wiki pages (including directory index/log updates).
+A single ingest typically touches 12–20 wiki pages (source page, entity pages, subdir index/log, domain index/log, root log, possibly overviews).
 
 ### QUERY — `> [question]`
 1. `bash .claude/scripts/recall.sh "[keywords]"` — check past sessions
@@ -470,8 +490,11 @@ This is what promotes raw session content to the `episodic` memory tier.
    - `source_authority` does not apply to observation pages; contradiction priority falls back to sources list length → `last_confirmed` → `confidence`
 4. For each existing page corroborated by a session observation: raise `confidence` by 0.05, update `last_confirmed`
 5. For each existing page contradicted: flag for supersession; observation pages have no `source_authority` — prefer existing claims backed by primary/secondary sources unless confidence gap is large
-6. Move processed session files to `sessions/wiki-digests/`
-7. Log: `## [YYYY-MM-DD] digest | sessions | N sessions → M pages (K episodic)`
+6. For each observation page filed:
+   - Add entry to `wiki/[domain]/observations/index.md` and `wiki/[domain]/index.md`
+   - Append to `wiki/[domain]/observations/log.md`, `wiki/[domain]/log.md`, `wiki/log.md`
+7. Move processed session files to `sessions/wiki-digests/`
+8. Log: `## [YYYY-MM-DD] digest | sessions | N sessions → M pages (K episodic)`
 
 ### CRYSTALLIZE — `> crystallize [title]`
 Distill a completed work thread into wiki pages:
@@ -482,7 +505,11 @@ Distill a completed work thread into wiki pages:
 5. For each existing page whose claims are confirmed by the session: raise `confidence` by 0.05, update `last_confirmed`
 6. For each existing page whose claims are challenged by the session: propose supersession or note contradiction
 7. Promote memory tier where evidence warrants
-8. Log: `## [YYYY-MM-DD] crystallize | [domain] | [title]`
+8. For each new observation page filed:
+   - Add entry to `wiki/[domain]/observations/index.md` and `wiki/[domain]/index.md`
+   - Append to `wiki/[domain]/observations/log.md`, `wiki/[domain]/log.md`, `wiki/log.md`
+9. If domain picture shifts: update `wiki/[domain]/overview.md`
+10. Log: `## [YYYY-MM-DD] crystallize | [domain] | [title]`
 
 ### LINT — `> lint [domain]`
 Auto-fix where possible:
@@ -494,6 +521,8 @@ Auto-fix where possible:
 - Missing cross-references → add typed relationship links
 - Sessions >7 days undigested → trigger digest
 - Pages where `last_confirmed` >30 days ago → decay `confidence` by tier rate (working: 0.05, episodic: 0.04, semantic: 0.03, procedural: 0.02); floor 0.0
+- For each stub created: add entry to `wiki/[domain]/[subdir]/index.md` and `wiki/[domain]/index.md`; append to `wiki/[domain]/[subdir]/log.md`
+- For each page deleted or marked superseded: remove from `wiki/[domain]/[subdir]/index.md`; append `supersede` entry to subdir/domain/root logs
 
 ### CONSOLIDATE — `> consolidate`
 Promote pages up the tier ladder:
@@ -528,6 +557,11 @@ QUERY auto-triggers stale-check for individual sources consulted mid-query — t
 
 ### UPDATE — `> update [domain] [path]`
 Update a wiki page from chat. For corrections, meeting notes, conversation decisions.
+1. Apply the change to the target page
+2. If title or description changed: update entry in `wiki/[domain]/[subdir]/index.md` and `wiki/[domain]/index.md`
+3. If entity relationships changed: update entity graph in `wiki/[domain]/[subdir]/index.md`, `wiki/[domain]/index.md`, and `wiki/index.md`
+4. If domain picture shifts: update `wiki/[domain]/overview.md`; if cross-domain synthesis shifts: update `wiki/overview.md`
+5. Append to `wiki/[domain]/[subdir]/log.md`, `wiki/[domain]/log.md`, `wiki/log.md`
 After completing scheduled LINT or CONSOLIDATE, also update `.claude/maintenance-state.json`
 (see Scheduled Maintenance section).
 
@@ -551,8 +585,8 @@ Create full directory structure, seed skeleton pages, install scripts, initializ
 - `raw/DOMAIN_N/` — one per domain (immutable source storage)
 - `wiki/DOMAIN_N/{sources,observations,concepts,entities}/` — one per domain
 - `wiki/DOMAIN_N/research/threads/` — if the domain will use research threads
-- `wiki/DOMAIN_N/overview.md` — seed with `type: overview` frontmatter + placeholder body
-- `wiki/overview.md` — seed with `type: overview` frontmatter + placeholder body
+- `wiki/DOMAIN_N/overview.md` — seed with `title` + `domain` frontmatter + placeholder body (reserved — no `type` field)
+- `wiki/overview.md` — seed with `title` + `domain` frontmatter + placeholder body (reserved — no `type` field)
 - `wiki/DOMAIN_N/index.md` + `wiki/DOMAIN_N/log.md` — seed empty at domain level
 - `wiki/DOMAIN_N/{subdir}/index.md` + `wiki/DOMAIN_N/{subdir}/log.md` — seed empty in every subdirectory
 If separate repo (`[s]`) was chosen during customize, verify `.claude/personal-wiki-path` resolves.
